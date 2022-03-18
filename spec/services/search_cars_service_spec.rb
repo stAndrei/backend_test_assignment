@@ -19,6 +19,7 @@ RSpec.describe SearchCarsService do
         {car_id: car4.id, rank_score: 0.6}
       ].to_json
     end
+    let(:response) { described_class.run!(options) }
 
     before do
       uri = URI(SearchCarsService::EXTERNAL_API_URL)
@@ -29,7 +30,7 @@ RSpec.describe SearchCarsService do
     end
 
     context 'when is no filtering' do
-      let(:response) { described_class.run!(user_id: user.id) }
+      let(:options) { {user_id: user.id} }
 
       it 'returns correct data' do
         results = response
@@ -58,9 +59,9 @@ RSpec.describe SearchCarsService do
       end
     end
 
+
     context 'when is filtering by query' do
       let(:options) { { query: car1.brand.name, user_id: user.id } }
-      let(:response) { described_class.run!(options) }
 
       it 'returns correct data' do
         results = response
@@ -70,6 +71,77 @@ RSpec.describe SearchCarsService do
         expect(results[0]).to eql(car1)
         expect(results[0].label).to eq("perfect_match")
         expect(results[0].rank_score).to be(0.9)
+      end
+    end
+
+
+    context 'filter price_max' do
+      let(:options) { { user_id: user.id, price_max: car1.price } }
+
+      it 'returns correct data' do
+        results = response
+
+        expect(results.size).to be(1)
+
+        expect(results[0]).to eql(car1)
+        expect(results[0].label).to eq("perfect_match")
+        expect(results[0].price).to eq(car1.price)
+      end
+    end
+
+    context 'filter price_min' do
+      let(:options) { { user_id: user.id, price_min: car5.price } }
+
+      it 'returns correct data' do
+        results = response
+
+        expect(results.size).to be(1)
+
+        expect(results[0]).to eql(car5)
+        expect(results[0].price).to eq(car5.price)
+      end
+    end
+
+    context 'filter price_min price_max zero' do
+      let(:options) { { user_id: user.id, price_min: 0, price_max: 10_000 } }
+
+      it 'returns correct data' do
+        results = response
+
+        expect(results.size).to be(0)
+      end
+    end
+
+    context 'filter price_min price_max two cars' do
+      let(:options) { { user_id: user.id, price_min: 10_000, price_max: 32_000 } }
+
+      it 'returns correct data' do
+        results = response
+
+        expect(results.size).to be(2)
+      end
+    end
+
+    context 'filter price_min price_max and brand' do
+      let(:options) { { user_id: user.id, price_min: 10_000, price_max: 32_000, query: car1.brand.name } }
+
+      it 'returns correct data' do
+        results = response
+
+        expect(results.size).to be(1)
+        expect(results[0]).to eql(car1)
+      end
+    end
+
+    context 'pagination page 2' do
+      let(:options) { { user_id: user.id, page: 2, per_page: 4 } }
+
+      it 'returns correct data' do
+        results = response
+
+        expect(results.size).to be(1)
+
+        expect(results[0]).to eql(car5)
       end
     end
   end
